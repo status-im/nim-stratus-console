@@ -1,0 +1,9 @@
+/nimcache
+/vendor/.nimble
+/tags
+
+docker
+*.AppImage
+*.qmlc
+tmp/
+stratusConsole
