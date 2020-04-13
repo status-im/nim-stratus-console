@@ -1,5 +1,3 @@
-import strformat, strutils
-
 import illwill
 
 import config, module
@@ -44,12 +42,12 @@ template setColor(tb: var TerminalBuffer, t: TextColor) =
   else:
     tb.setStyle({})
 
+# Global View Constants
 const
   SCREEN_X_PAD = 2
-  SCREEN_Y_PAD = 1
-  VIEW_Y = 6
-  PATTERN_HEADER_HEIGHT = 3
-  PATTERN_TRACK_WIDTH = 10
+  SCREEN_Y_PAD = 2
+  TOP_Y_PAD = 4
+  INTERNAL_PAD = 2
 
 var
   gCurrView = vtNode
@@ -69,22 +67,60 @@ proc toggleHelpView*() =
 
 var gTerminalBuffer: TerminalBuffer
 
-proc drawNodeState*(tb: var TerminalBuffer, ns: NodeState) =
+proc drawMainView(tb: var TerminalBuffer) =
+  if tb.height < 9: return 
+
+  # Define constants
+  var 
+    CHANNELS_WIDTH = int((tb.width - 2*SCREEN_X_PAD) / 4 - (SCREEN_X_PAD / 2 ))
+    INPUT_HEIGHT = 6
+
+  var bb = newBoxBuffer(tb.width, tb.height)
+
+  # Draw Channels border
+  var
+    x1 = SCREEN_X_PAD
+    y1 = TOP_Y_PAD
+    x2 = x1 + CHANNELS_WIDTH
+    y2 = tb.height - SCREEN_Y_PAD - INPUT_HEIGHT - INTERNAL_PAD 
+
+  bb.drawVertLine(x1, y1, y2)
+  bb.drawVertLine(x2, y1, y2)
+  bb.drawHorizLine(x1, x2, y1)
+  bb.drawHorizLine(x1, x2, y2)
+
+  # Draw Input border
+  y1 = tb.height - SCREEN_Y_PAD - INPUT_HEIGHT
+  x2 = tb.width - SCREEN_X_PAD - SCREEN_X_PAD
+  y2 = tb.height - SCREEN_Y_PAD
+
+  bb.drawVertLine(x1, y1, y2)
+  bb.drawVertLine(x2, y1, y2)
+  bb.drawHorizLine(x1, x2, y1)
+  bb.drawHorizLine(x1, x2, y2)
+
+  # Draw Chat border
+  x1 = SCREEN_X_PAD + CHANNELS_WIDTH + INTERNAL_PAD
+  y1 = TOP_Y_PAD
+  y2 = tb.height - SCREEN_Y_PAD - INPUT_HEIGHT - INTERNAL_PAD 
+
+  bb.drawVertLine(x1, y1, y2)
+  bb.drawVertLine(x2, y1, y2)
+  bb.drawHorizLine(x1, x2, y1)
+  bb.drawHorizLine(x1, x2, y2)
+
+  tb.setColor(gCurrTheme.border)
+  tb.write(bb)
+
+proc drawNodeState(tb: var TerminalBuffer, ns: NodeState) =
+  const WIDTH = 70
+
+  # Channels Column
   const
     x1 = SCREEN_X_PAD
-    y1 = VIEW_Y
-
-    NUM_X      = x1+1
-    NAME_X     = NUM_X + 2 + 2
-    LENGTH_X   = NAME_X
-    FINETUNE_X = LENGTH_X + 5 + 2
-    VOLUME_X   = FINETUNE_X + 2 + 2
-    REPEAT_X   = VOLUME_X + 2 + 2
-    REPLEN_X   = REPEAT_X + 5 + 2
-
-    x2 = REPLEN_X + 5 + 2 - 1
-
-  let y2 = y1 + max(tb.height - VIEW_Y - 3, 0)
+    y1 = 2
+    x2 = x1 + WIDTH
+    y2 = 70
 
   var bb = newBoxBuffer(tb.width, tb.height)
 
@@ -96,6 +132,8 @@ proc drawNodeState*(tb: var TerminalBuffer, ns: NodeState) =
 
   tb.setColor(gCurrTheme.border)
   tb.write(bb)
+
+  
 
 var gHelpViewText: TerminalBuffer
 
@@ -162,13 +200,14 @@ proc createHelpViewText() =
   writeEntry("I", "toggle resampler algorithm")
   inc(y)
 
-proc drawHelpView*(tb: var TerminalBuffer, viewHeight: Natural) =
+proc drawHelpView*(tb: var TerminalBuffer, viewHeight: Natural, viewWidth: Natural) =
   if viewHeight < 2: return
+  if viewWidth < 5: return
 
   const
     WIDTH = 56
     x1 = SCREEN_X_PAD
-    y1 = VIEW_Y
+    y1 = TOP_Y_PAD
     x2 = x1 + WIDTH
 
   let
@@ -204,7 +243,7 @@ proc drawHelpView*(tb: var TerminalBuffer, viewHeight: Natural) =
 proc drawStatusLine(tb: var TerminalBuffer) =
   if tb.height >= 9:
     tb.setColor(gCurrTheme.text)
-    tb.write(SCREEN_X_PAD+1, tb.height - SCREEN_Y_PAD-1, "Press ")
+    tb.write(SCREEN_X_PAD, tb.height - 1, "Press ")
     tb.setColor(gCurrTheme.textHi)
     tb.write("?")
     tb.setColor(gCurrTheme.text)
@@ -216,15 +255,17 @@ proc drawStatusLine(tb: var TerminalBuffer) =
 
 
 proc drawScreen(tb: var TerminalBuffer, ns: NodeState) =
-  drawNodeState(tb, ns)
+  let viewWidth = max(tb.width - 2*SCREEN_X_PAD, 0)
+  # drawNodeState(tb, ns)
+  drawMainView(tb)
   drawStatusLine(tb)
 
-  let viewHeight = max(tb.height - VIEW_Y - 3, 0)
+  let viewHeight = max(tb.height - TOP_Y_PAD - 3, 0)
 
   case gCurrView
   of vtNode:    discard
   of vtSamples: discard # drawSamplesView(tb, ns, viewHeight)
-  of vtHelp:    drawHelpView(tb, viewHeight)
+  of vtHelp:    drawHelpView(tb, viewHeight, viewWidth)
 
 
 proc updateScreen*(ns: NodeState, forceRedraw: bool = false) =

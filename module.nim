@@ -1,5 +1,3 @@
-import strformat, strutils
-
 type
   Module* = ref object
     moduleType*:     ModuleType
