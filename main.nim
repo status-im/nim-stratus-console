@@ -1,18 +1,16 @@
-import logging, math, os, strformat, strutils
+import logging, os
 
 import illwill
 
 import config
 import display
-# import loader
-import module
-import renderer
+import node
 
 proc nodeQuitProc() {.noconv.} =
   illwillDeinit()
 
-proc startNode(config: Config, module: Module) =
-  var ns = initNodeState(config, module)
+proc startNode(config: Config) =
+  var ns = initNodeState(config)
 
   system.addQuitProc(nodeQuitProc)
 
@@ -23,13 +21,6 @@ proc startNode(config: Config, module: Module) =
     setTheme(config.theme)
   else:
     illwillInit(fullscreen = false)
-
-  var
-    currPattern = 0
-    currRow = 0
-    lastPattern = -1
-    lastRow = -1
-
 
   while true:
     let key = getKey()
@@ -109,9 +100,6 @@ proc main() =
   elif config.suppressWarnings:
     setLogFilter(lvlError)
 
-  # Load module
-  var module: Module
-
-  startNode(config, module)
+  startNode(config)
 
 main()

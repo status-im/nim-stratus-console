@@ -1,7 +1,9 @@
+import strformat, strutils
+
 import illwill
 
-import config, module
-import renderer
+import config, peer, topic
+import node
 
 type
   ViewType* = enum
@@ -67,6 +69,30 @@ proc toggleHelpView*() =
 
 var gTerminalBuffer: TerminalBuffer
 
+proc drawNodeState*(tb: var TerminalBuffer, ns: NodeState) =
+  const 
+    X1 = SCREEN_X_PAD + 1
+    Y1 = SCREEN_Y_PAD + 0
+    COL1_X = X1
+    COL1_X_VAL = COL1_X + 10
+
+  # Node Status Column
+  var y = Y1
+
+  tb.setColor(gCurrTheme.text)
+  tb.write(COL1_X, y, fmt"Status:")
+  tb.setColor(gCurrTheme.textHi)
+  tb.write(COL1_X_VAL, y, fmt"{ns.connectionStatus}")
+  inc(y)
+
+  tb.setColor(gCurrTheme.text)
+  tb.write(COL1_X, y, fmt"Num Peers:")
+  tb.setColor(gCurrTheme.textHi)
+  tb.write(COL1_X_VAL, y, fmt"{ns.numPeers}")
+  
+  inc(y)
+
+
 proc drawMainView(tb: var TerminalBuffer) =
   if tb.height < 9: return 
 
@@ -112,28 +138,6 @@ proc drawMainView(tb: var TerminalBuffer) =
   tb.setColor(gCurrTheme.border)
   tb.write(bb)
 
-proc drawNodeState(tb: var TerminalBuffer, ns: NodeState) =
-  const WIDTH = 70
-
-  # Channels Column
-  const
-    x1 = SCREEN_X_PAD
-    y1 = 2
-    x2 = x1 + WIDTH
-    y2 = 70
-
-  var bb = newBoxBuffer(tb.width, tb.height)
-
-  # Draw border
-  bb.drawVertLine(x1, y1, y2)
-  bb.drawVertLine(x2, y1, y2)
-  bb.drawHorizLine(x1, x2, y1)
-  bb.drawHorizLine(x1, x2, y2)
-
-  tb.setColor(gCurrTheme.border)
-  tb.write(bb)
-
-  
 
 var gHelpViewText: TerminalBuffer
 
@@ -259,6 +263,7 @@ proc drawScreen(tb: var TerminalBuffer, ns: NodeState) =
   # drawNodeState(tb, ns)
   drawMainView(tb)
   drawStatusLine(tb)
+  drawNodeState(tb, ns)
 
   let viewHeight = max(tb.height - TOP_Y_PAD - 3, 0)
 
