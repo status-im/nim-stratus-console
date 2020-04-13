@@ -68,6 +68,9 @@ proc parseCommandLine*(): Config =
 
   for kind, opt, val in optParser.getopt():
     case kind
+    of cmdArgument:
+      discard
+
     of cmdLongOption, cmdShortOption:
       case opt
       # "Hidden" feature for testing & debuggin only
